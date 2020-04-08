@@ -22,10 +22,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
-from sklearn.svm import SVR
+
 rooms_ix, bedrooms_ix, population_ix, households_ix = 3, 4, 5, 6
 
-from scipy import stats
 
 # Some fucked up transformation shit happening here
 class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
@@ -66,24 +65,6 @@ def nad_grid_searcher(reg_algo, housing_prepared, housing_labels):
 
     return grid_search
 
-def nad_sVR(housing_labels, housing_prepared, 
-                some_data_prepared, some_labels): 
-
-    print("Initiating SUPPORT VECTOR MACHINE REGRESSOR...")
-    
-    svm_reg = SVR()
-    svm_reg.fit(housing_prepared, housing_labels)
-
-    housing_predictions = svm_reg.predict(some_data_prepared)
-
-    print(f"Prediction scores: {housing_predictions}")
-
-    svm_scores = cross_val_score(svm_reg, housing_prepared, housing_labels, 
-                scoring="neg_mean_squared_error", cv=10)
-
-    svm_rmse_scores = np.sqrt(-svm_scores)
-    display_scores(svm_rmse_scores)
-
 def nad_linear_regressor(housing_labels, 
                     housing_prepared, some_data_prepared, some_labels): 
     lin_reg = LinearRegression()
@@ -117,7 +98,7 @@ def nad_random_forest_regressor(housing_labels,
     print("\RANDOM FORST REGRESSION SCORES")
     display_scores(rf_mean_score)
 
-    return nad_grid_searcher(rf_reg, housing_prepared, housing_labels)
+    nad_grid_searcher(rf_reg, housing_prepared, housing_labels)
 
 
 def nad_tree_regressor(housing_labels, 
@@ -163,10 +144,11 @@ def main():
 # BUILD A TRAIN AND TEST SET
     # Stratify the data
     strat_train, strat_test = stratify(housing)
-    strat_test["income_cat"].value_counts() / len(strat_test)
+
     # Now drop the category column
     for set_ in (strat_train, strat_test):
         set_.drop("income_cat", axis=1, inplace=True)
+
     # Set aside the test data
     housing = strat_train.copy()
     housing = strat_train.drop("median_house_value", axis=1)
@@ -233,31 +215,11 @@ def main():
     #nad_tree_regressor(housing_labels, 
                 #housing_prepared, some_data_prepared, some_labels)
 
-    nad_sVR(housing_labels, housing_prepared, some_data_prepared, some_labels)
+    grid_search = nad_random_forest_regressor(housing_labels, housing_prepared, 
+                    some_data_prepared, some_labels)
 
-    # grid_search = nad_random_forest_regressor(housing_labels, housing_prepared, 
-    #                 some_data_prepared, some_labels)
+    print(grid_search)
 
-  
-
-    # final_model = grid_search.best_estimator_
-
-    # X_test = strat_test.drop("median_house_value", axis=1)
-    # y_test = strat_test["median_house_value"].copy()
-
-    # X_test_prepared = full_pipeline.transform(X_test)
-    # final_predictions = final_model.predict(X_test_prepared)
-
-    # final_mse = mean_squared_error(y_test, final_predictions)
-    # final_rmse = np.sqrt(final_mse)
-
-
-    # confidence = 0.95
-    # squared_errors = (final_predictions - y_test) ** 2
-    # c = np.sqrt(stats.t.interval(confidence, len(squared_errors) -1,
-    #             loc=squared_errors.mean(), 
-    #             scale=stats.sem(squared_errors)))
-    # print(c)
 
 if __name__ == '__main__':
     main()
